@@ -1,4 +1,4 @@
-package com.mmiladinovic.events;
+package com.mmiladinovic.message;
 
 import akka.actor.ActorRef;
 

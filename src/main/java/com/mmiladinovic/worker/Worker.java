@@ -1,10 +1,13 @@
 package com.mmiladinovic.worker;
 
 import akka.actor.AbstractActor;
+import akka.actor.Props;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
-import com.mmiladinovic.events.*;
+import com.mmiladinovic.message.NoWorkToBeDone;
+import com.mmiladinovic.message.WorkIsReady;
+import com.mmiladinovic.message.WorkToBeDone;
 
 /**
  * Created by miroslavmiladinovic on 27/11/2014.
@@ -21,7 +24,6 @@ public class Worker extends AbstractActor {
                 .build());
     }
 
-
     private void workToBeDone(WorkToBeDone msg) {
 
     }
@@ -32,6 +34,10 @@ public class Worker extends AbstractActor {
 
     private void noWorkToBeDone(NoWorkToBeDone msg) {
 
+    }
+
+    public static Props props() {
+        return Props.create(Worker.class, () -> new Worker());
     }
 
 }

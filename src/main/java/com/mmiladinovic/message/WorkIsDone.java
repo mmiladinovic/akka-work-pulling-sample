@@ -1,4 +1,4 @@
-package com.mmiladinovic.events;
+package com.mmiladinovic.message;
 
 import akka.actor.ActorRef;
 
@@ -7,11 +7,11 @@ import java.io.Serializable;
 /**
  * Created by miroslavmiladinovic on 27/11/2014.
  */
-public class WorkerRequestsWork implements Serializable {
+public class WorkIsDone implements Serializable {
 
     public final ActorRef worker;
 
-    public WorkerRequestsWork(ActorRef worker) {
+    public WorkIsDone(ActorRef worker) {
         this.worker = worker;
     }
 }
