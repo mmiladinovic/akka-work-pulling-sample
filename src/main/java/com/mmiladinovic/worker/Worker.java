@@ -39,7 +39,7 @@ public abstract class Worker extends AbstractActor {
         idle = ReceiveBuilder.
                 match(WorkToBeDone.class, this::workToBeDone).
                 match(WorkIsReady.class, this::workIsReady).
-                match(NoWorkToBeDone.class, this::noWorkToBeDone).
+                match(NoWorkToBeDone.class, m -> {/* we shouldn't really be getting this in idle state */}).
                 matchAny(m -> {
                     log.error("unhandled message whilst in idle state", m);
                 }).
@@ -56,17 +56,13 @@ public abstract class Worker extends AbstractActor {
     private void workToBeDone(WorkToBeDone msg) {
         // invoke handleWork
         log.info("Received work to do {}", msg.work);
-        handleWork(msg.work, sender()); // TODO this not the other way round for sync work handlers?
         context().become(working);
+        handleWork(msg.work, sender()); // TODO this not the other way round for sync work handlers?
     }
 
     private void workIsReady(WorkIsReady msg) {
         log.info("requesting work");
         master.tell(new WorkerRequestsWork(self()), self());
-    }
-
-    private void noWorkToBeDone(NoWorkToBeDone msg) {
-        // ignore for now
     }
 
     private void workComplete(WorkComplete msg) {
@@ -86,5 +82,4 @@ public abstract class Worker extends AbstractActor {
             this.work = work;
         }
     }
-
 }

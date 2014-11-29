@@ -7,7 +7,6 @@ import com.mmiladinovic.worker.HelloWorldWorker;
 import scala.concurrent.duration.Duration;
 
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Created by miroslavmiladinovic on 29/11/2014.
@@ -23,9 +22,13 @@ public class Main {
             ActorRef worker = system.actorOf(HelloWorldWorker.props(master.path().toString()), "worker-"+i);
         }
 
-        system.scheduler().schedule(
-                Duration.Zero(), Duration.create(10, TimeUnit.MILLISECONDS),
-                (Runnable) () -> master.tell(UUID.randomUUID().toString(), ActorRef.noSender()),
+        system.scheduler().scheduleOnce(
+                Duration.Zero(),
+                (Runnable) () -> {
+                    while (true) {
+                        master.tell(UUID.randomUUID().toString(), ActorRef.noSender());
+                    }
+                },
                 system.dispatcher());
     }
 }

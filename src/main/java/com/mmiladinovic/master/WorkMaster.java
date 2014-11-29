@@ -9,7 +9,11 @@ import akka.event.LoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 import com.mmiladinovic.message.*;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Queue;
+import java.util.concurrent.ArrayBlockingQueue;
 
 /**
  * Works with a pool of workers, sending them work from the work queue
@@ -19,7 +23,7 @@ public class WorkMaster extends AbstractActor {
     private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
     private final Map<ActorRef, Optional<AcceptedWork>> workers = new HashMap<>();
-    private final Queue<AcceptedWork> workQ = new LinkedList<>();  // TODO bound the queue?
+    private final Queue<AcceptedWork> workQ = new ArrayBlockingQueue<AcceptedWork>(10000);
 
     public WorkMaster() {
         receive(ReceiveBuilder
@@ -28,9 +32,12 @@ public class WorkMaster extends AbstractActor {
                 .match(WorkIsDone.class, this::workIsDone)
                 .match(Terminated.class, this::workerTerminated)
                 .matchAny(o -> {
-                    log.info("accepting work {}", o);
-                    workQ.add(new AcceptedWork(sender(), o));
-                    notifyWorkers();
+                    // log.info("accepting work {}", o);
+                    if (workQ.offer(new AcceptedWork(sender(), o))) {
+                        notifyWorkers();
+                    } else {
+                        log.info("internal Q full. rejecting work {}", o);
+                    }
                 })
                 .build());
     }
