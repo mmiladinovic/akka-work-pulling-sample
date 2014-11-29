@@ -12,7 +12,7 @@ import com.mmiladinovic.message.*;
 import java.util.*;
 
 /**
- * Created by miroslavmiladinovic on 27/11/2014.
+ * Works with a pool of workers, sending them work from the work queue
  */
 public class WorkMaster extends AbstractActor {
 
@@ -27,8 +27,11 @@ public class WorkMaster extends AbstractActor {
                 .match(WorkerRequestsWork.class, this::workerRequestsWork)
                 .match(WorkIsDone.class, this::workIsDone)
                 .match(Terminated.class, this::workerTerminated)
-                .matchAny(o -> workQ.add(new AcceptedWork(sender(), o)))
-                        //.matchAny(o -> log.error("Unhandled WorkMaster event: {}", o))
+                .matchAny(o -> {
+                    log.info("accepting work {}", o);
+                    workQ.add(new AcceptedWork(sender(), o));
+                    notifyWorkers();
+                })
                 .build());
     }
 
@@ -71,7 +74,19 @@ public class WorkMaster extends AbstractActor {
     }
 
     private void workerTerminated(Terminated terminated) {
-        // check
+        // check if its still one of our actors
+        // and if so remove him from the pool but first re-assign the work through the inputQ
+        ActorRef dead = terminated.actor();
+        if (workers.containsKey(dead)) {
+            if (workers.get(dead).isPresent()) {
+                AcceptedWork work = workers.get(dead).get();
+                self().tell(work.work, work.requestor);
+            }
+            workers.remove(dead);
+        }
+        else {
+            log.error("Termination message came from actor we don't know about: {}", terminated.actor());
+        }
     }
 
 

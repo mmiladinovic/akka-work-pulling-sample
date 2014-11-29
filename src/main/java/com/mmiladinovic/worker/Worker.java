@@ -1,43 +1,90 @@
 package com.mmiladinovic.worker;
 
 import akka.actor.AbstractActor;
-import akka.actor.Props;
+import akka.actor.ActorRef;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
-import com.mmiladinovic.message.NoWorkToBeDone;
-import com.mmiladinovic.message.WorkIsReady;
-import com.mmiladinovic.message.WorkToBeDone;
+import com.mmiladinovic.message.*;
+import scala.PartialFunction;
+import scala.runtime.BoxedUnit;
+
+import java.io.Serializable;
 
 /**
  * Created by miroslavmiladinovic on 27/11/2014.
  */
-public class Worker extends AbstractActor {
+public abstract class Worker extends AbstractActor {
     private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
-    public Worker() {
-        receive(ReceiveBuilder
-                .match(WorkToBeDone.class, this::workToBeDone)
-                .match(WorkIsReady.class, this::workIsReady)
-                .match(NoWorkToBeDone.class, this::noWorkToBeDone)
-                .matchAny(o -> log.error("Unhandled event: {}", o))
-                .build());
+    private final ActorRef master;
+
+    private final PartialFunction<Object, BoxedUnit> working;
+    private final PartialFunction<Object, BoxedUnit> idle;
+
+    public Worker(String masterActorPath) {
+        master = context().actorFor(masterActorPath);
+
+        working = ReceiveBuilder.
+                match(WorkComplete.class, this::workComplete).
+                match(WorkToBeDone.class, m -> {
+                    log.error("I shouldn't be asked to work whilst already working");
+                }).
+                match(NoWorkToBeDone.class, m -> {/* we asked for work but there's none. ignore */}).
+                matchAny(m -> {
+                    log.error("unhandled message whilst in working state: {}", m);
+                }).
+                build();
+
+        idle = ReceiveBuilder.
+                match(WorkToBeDone.class, this::workToBeDone).
+                match(WorkIsReady.class, this::workIsReady).
+                match(NoWorkToBeDone.class, this::noWorkToBeDone).
+                matchAny(m -> {
+                    log.error("unhandled message whilst in idle state", m);
+                }).
+                build();
+
+        receive(idle); // start from idle state
+    }
+
+    @Override
+    public void preStart() throws Exception {
+        master.tell(new WorkerCreated(self()), self());
     }
 
     private void workToBeDone(WorkToBeDone msg) {
-
+        // invoke handleWork
+        log.info("Received work to do {}", msg.work);
+        handleWork(msg.work, sender()); // TODO this not the other way round for sync work handlers?
+        context().become(working);
     }
 
     private void workIsReady(WorkIsReady msg) {
-
+        log.info("requesting work");
+        master.tell(new WorkerRequestsWork(self()), self());
     }
 
     private void noWorkToBeDone(NoWorkToBeDone msg) {
-
+        // ignore for now
     }
 
-    public static Props props() {
-        return Props.create(Worker.class, () -> new Worker());
+    private void workComplete(WorkComplete msg) {
+        log.info("work is complete {}", msg.work);
+        master.tell(new WorkIsDone(self()), self());
+        master.tell(new WorkerRequestsWork(self()), self());
+        context().become(idle);
+    }
+
+    public abstract Object handleWork(Object work, ActorRef workRequestor);
+
+    // -- private messages
+    public static class WorkComplete implements Serializable {
+        public final Object work;
+
+        public WorkComplete(Object work) {
+            this.work = work;
+        }
     }
 
 }
