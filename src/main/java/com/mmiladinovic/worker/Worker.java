@@ -6,6 +6,7 @@ import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 import com.mmiladinovic.message.*;
+import com.mmiladinovic.metrics.MetricsRegistry;
 import scala.PartialFunction;
 import scala.runtime.BoxedUnit;
 
@@ -67,6 +68,8 @@ public abstract class Worker extends AbstractActor {
 
     private void workComplete(WorkComplete msg) {
         log.info("work is complete {}", msg.work);
+        MetricsRegistry.meterWorkCompleted().mark();
+
         master.tell(new WorkIsDone(self()), self());
         master.tell(new WorkerRequestsWork(self()), self());
         context().become(idle);

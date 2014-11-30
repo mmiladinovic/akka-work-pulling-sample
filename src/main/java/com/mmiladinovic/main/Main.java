@@ -3,6 +3,7 @@ package com.mmiladinovic.main;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import com.mmiladinovic.master.WorkMaster;
+import com.mmiladinovic.metrics.MetricsRegistry;
 import com.mmiladinovic.worker.HelloWorldWorker;
 import scala.concurrent.duration.Duration;
 
@@ -25,7 +26,11 @@ public class Main {
         system.scheduler().scheduleOnce(
                 Duration.Zero(),
                 (Runnable) () -> {
-                    while (true) {
+                    for (int i = 1; true; i++) {
+                        if ((i % 1000) == 0) {
+                            MetricsRegistry.meterWorkGenerated().mark(1000);
+                            i = 1;
+                        }
                         master.tell(UUID.randomUUID().toString(), ActorRef.noSender());
                     }
                 },

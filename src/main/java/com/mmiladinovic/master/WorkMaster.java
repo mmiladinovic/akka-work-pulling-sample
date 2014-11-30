@@ -8,6 +8,7 @@ import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 import com.mmiladinovic.message.*;
+import com.mmiladinovic.metrics.MetricsRegistry;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -26,6 +27,8 @@ public class WorkMaster extends AbstractActor {
     private final Queue<AcceptedWork> workQ = new ArrayBlockingQueue<AcceptedWork>(10000);
 
     public WorkMaster() {
+        MetricsRegistry.registerGaugeMasterQueueDepth(workQ);
+
         receive(ReceiveBuilder
                 .match(WorkerCreated.class, this::workerCreated)
                 .match(WorkerRequestsWork.class, this::workerRequestsWork)
@@ -34,8 +37,10 @@ public class WorkMaster extends AbstractActor {
                 .matchAny(o -> {
                     // log.info("accepting work {}", o);
                     if (workQ.offer(new AcceptedWork(sender(), o))) {
+                        MetricsRegistry.meterWorkAccepted().mark();
                         notifyWorkers();
                     } else {
+                        MetricsRegistry.meterWorkRejected().mark();
                         log.info("internal Q full. rejecting work {}", o);
                     }
                 })
