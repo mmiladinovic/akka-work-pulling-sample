@@ -15,8 +15,8 @@ public class HelloWorldWorker extends Worker {
 
     private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
-    public HelloWorldWorker(String masterActorPath) {
-        super(masterActorPath);
+    public HelloWorldWorker(ActorRef master) {
+        super(master);
     }
 
     @Override
@@ -32,7 +32,7 @@ public class HelloWorldWorker extends Worker {
         return helloSaid;
     }
 
-    public static Props props(String masterPath) {
-        return Props.create(HelloWorldWorker.class, () -> new HelloWorldWorker(masterPath));
+    public static Props props(ActorRef master) {
+        return Props.create(HelloWorldWorker.class, () -> new HelloWorldWorker(master));
     }
 }

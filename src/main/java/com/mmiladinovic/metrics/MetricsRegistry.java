@@ -40,11 +40,6 @@ public class MetricsRegistry {
     }
 
     public static void registerGaugeMasterQueueDepth(final Queue queue) {
-        registry.register(MetricRegistry.name("gauge-master-queue-depth"), new Gauge<Integer>() {
-            @Override
-            public Integer getValue() {
-                return queue.size();
-            }
-        });
+        registry.register(MetricRegistry.name("gauge-master-queue-depth"), (Gauge<Integer>) queue::size);
     }
 }
