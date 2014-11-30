@@ -20,12 +20,11 @@ public class Main {
 
         ActorRef master = system.actorOf(WorkMaster.props(), "master");
         for (int i = 0; i < 5; i++) {
-            ActorRef worker = system.actorOf(HelloWorldWorker.props(master.path().toString()), "worker-"+i);
+            system.actorOf(HelloWorldWorker.props(master), "worker-"+i);
         }
 
         system.scheduler().scheduleOnce(
-                Duration.Zero(),
-                (Runnable) () -> {
+                Duration.Zero(), () -> {
                     for (int i = 1; true; i++) {
                         if ((i % 1000) == 0) {
                             MetricsRegistry.meterWorkGenerated().mark(1000);

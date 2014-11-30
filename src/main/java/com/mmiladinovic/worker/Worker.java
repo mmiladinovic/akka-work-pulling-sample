@@ -23,8 +23,8 @@ public abstract class Worker extends AbstractActor {
     private final PartialFunction<Object, BoxedUnit> working;
     private final PartialFunction<Object, BoxedUnit> idle;
 
-    public Worker(String masterActorPath) {
-        master = context().actorFor(masterActorPath);
+    public Worker(ActorRef master) {
+        this.master = master;
 
         working = ReceiveBuilder.
                 match(WorkComplete.class, this::workComplete).
