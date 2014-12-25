@@ -24,7 +24,7 @@ public class Main {
         }
 
         system.scheduler().scheduleOnce(
-                Duration.Zero(), () -> {
+                Duration.Zero(), (Runnable) () -> {
                     for (int i = 1; true; i++) {
                         if ((i % 1000) == 0) {
                             MetricsRegistry.meterWorkGenerated().mark(1000);
