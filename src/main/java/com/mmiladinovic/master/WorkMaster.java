@@ -35,7 +35,7 @@ public class WorkMaster extends AbstractActor {
                 .match(WorkIsDone.class, this::workIsDone)
                 .match(Terminated.class, this::workerTerminated)
                 .matchAny(o -> {
-                    // log.info("accepting work {}", o);
+                    log.info("accepting work {}", o);
                     if (workQ.offer(new AcceptedWork(sender(), o))) {
                         MetricsRegistry.meterWorkAccepted().mark();
                         notifyWorkers();

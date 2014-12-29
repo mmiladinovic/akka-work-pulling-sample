@@ -32,9 +32,7 @@ public abstract class Worker extends AbstractActor {
                     log.error("I shouldn't be asked to work whilst already working");
                 }).
                 match(NoWorkToBeDone.class, m -> {/* we asked for work but there's none. ignore */}).
-                matchAny(m -> {
-                    log.error("unhandled message whilst in working state: {}", m);
-                }).
+                matchAny(m -> { log.info("received handleAny msg {}", m); handleAny(m); }).
                 build();
 
         idle = ReceiveBuilder.
@@ -75,7 +73,8 @@ public abstract class Worker extends AbstractActor {
         context().become(idle);
     }
 
-    public abstract Object handleWork(Object work, ActorRef workRequestor);
+    public abstract void handleWork(Object work, ActorRef workRequestor);
+    public abstract void handleAny(Object work);
 
     // -- private messages
     public static class WorkComplete implements Serializable {
