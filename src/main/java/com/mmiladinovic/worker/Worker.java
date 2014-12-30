@@ -31,14 +31,12 @@ public abstract class Worker extends AbstractActor {
                 match(WorkToBeDone.class, m -> {
                     log.error("I shouldn't be asked to work whilst already working");
                 }).
-                match(NoWorkToBeDone.class, m -> {/* we asked for work but there's none. ignore */}).
                 matchAny(m -> { log.info("received handleAny msg {}", m); handleAny(m); }).
                 build();
 
         idle = ReceiveBuilder.
                 match(WorkToBeDone.class, this::workToBeDone).
                 match(WorkIsReady.class, this::workIsReady).
-                match(NoWorkToBeDone.class, m -> {/* we shouldn't really be getting this in idle state */}).
                 matchAny(m -> {
                     log.error("unhandled message whilst in idle state", m);
                 }).

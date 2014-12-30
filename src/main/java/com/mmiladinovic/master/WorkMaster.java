@@ -1,20 +1,20 @@
 package com.mmiladinovic.master;
 
-import akka.actor.AbstractActor;
-import akka.actor.ActorRef;
-import akka.actor.Props;
-import akka.actor.Terminated;
+import akka.actor.*;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 import com.mmiladinovic.message.*;
 import com.mmiladinovic.metrics.MetricsRegistry;
+import scala.concurrent.duration.Duration;
 
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Works with a pool of workers, sending them work from the work queue
@@ -26,7 +26,13 @@ public class WorkMaster extends AbstractActor {
     private final Map<ActorRef, Optional<AcceptedWork>> workers = new HashMap<>();
     private final Queue<AcceptedWork> workQ = new ArrayBlockingQueue<AcceptedWork>(10000);
 
-    public WorkMaster() {
+    private final ActorRef workFeeder;
+
+    // to receive our internal tick message to "prod" work feeder if SQS was empty on the last check
+    private final Cancellable tick;
+    private long lastAskedWorkFeeder;
+
+    public WorkMaster(ActorRef workFeeder) {
         MetricsRegistry.registerGaugeMasterQueueDepth(workQ);
 
         receive(ReceiveBuilder
@@ -34,6 +40,7 @@ public class WorkMaster extends AbstractActor {
                 .match(WorkerRequestsWork.class, this::workerRequestsWork)
                 .match(WorkIsDone.class, this::workIsDone)
                 .match(Terminated.class, this::workerTerminated)
+                .matchEquals("tick", this::tick)
                 .matchAny(o -> {
                     log.info("accepting work {}", o);
                     if (workQ.offer(new AcceptedWork(sender(), o))) {
@@ -45,6 +52,18 @@ public class WorkMaster extends AbstractActor {
                     }
                 })
                 .build());
+
+        this.workFeeder = workFeeder;
+
+        tick = getContext().system().scheduler().schedule(
+                Duration.create(500, TimeUnit.MILLISECONDS),
+                Duration.create(1000, TimeUnit.MILLISECONDS),
+                self(), "tick", getContext().dispatcher(), null);
+    }
+
+    @Override
+    public void postStop() throws Exception {
+        tick.cancel();
     }
 
     // --  message handlers
@@ -65,7 +84,7 @@ public class WorkMaster extends AbstractActor {
         // then send him WorkToBeDone msg and update the worker status
         if (workers.containsKey(msg.worker)) {
             if (workQ.isEmpty()) {
-                msg.worker.tell(new NoWorkToBeDone(), self());
+                askForMoreWork();
             }
             else if (!workers.get(msg.worker).isPresent()) {
                 AcceptedWork workItem = workQ.poll();
@@ -101,7 +120,6 @@ public class WorkMaster extends AbstractActor {
         }
     }
 
-
     private void notifyWorkers() {
         // send WorkIsReady to all available and non busy workers
         if (!workQ.isEmpty()) {
@@ -111,12 +129,25 @@ public class WorkMaster extends AbstractActor {
         }
     }
 
-    // actor creation
-    public static Props props() {
-        return Props.create(WorkMaster.class, () -> new WorkMaster());
+    private void askForMoreWork() {
+        lastAskedWorkFeeder = System.currentTimeMillis();
+        workFeeder.tell(new FeedMoreWork(10, self()), self());
     }
 
-    private static final class AcceptedWork {
+    private void tick(String s) {
+        long delta = System.currentTimeMillis() - lastAskedWorkFeeder;
+        if (delta > 1000) {
+            log.info("delta expired. asking for more work");
+            askForMoreWork();
+        }
+    }
+
+    // actor creation
+    public static Props props(ActorRef workFeeder) {
+        return Props.create(WorkMaster.class, () -> new WorkMaster(workFeeder));
+    }
+
+    private static final class AcceptedWork implements Serializable {
         public final ActorRef requestor;
         public final Object work;
 

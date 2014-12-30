@@ -34,6 +34,12 @@ public class MessageDeleter extends UntypedActor {
         }
     }
 
+    @Override
+    public void postStop() throws Exception {
+        super.postStop();
+        log.info("message deleter {} stopping.", self());
+    }
+
     public static Props props(SQS sqs) {
         return Props.create(MessageDeleter.class, () -> new MessageDeleter(sqs));
     }
