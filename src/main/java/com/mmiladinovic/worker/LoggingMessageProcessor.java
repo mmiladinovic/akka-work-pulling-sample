@@ -5,20 +5,19 @@ import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import com.mmiladinovic.aws.SQS;
-import com.mmiladinovic.aws.SQSMessage;
 
 import java.io.Serializable;
 
 /**
  * Created by miroslavmiladinovic on 27/12/14.
  */
-public class MessageProcessor extends UntypedActor {
+public class LoggingMessageProcessor extends UntypedActor {
 
     private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
     private final SQS sqs;
 
-    public MessageProcessor(SQS sqs) {
+    public LoggingMessageProcessor(SQS sqs) {
         this.sqs = sqs;
     }
 
@@ -34,7 +33,7 @@ public class MessageProcessor extends UntypedActor {
     }
 
     public static Props props(SQS sqs) {
-        return Props.create(MessageProcessor.class, () -> new MessageProcessor(sqs));
+        return Props.create(LoggingMessageProcessor.class, () -> new LoggingMessageProcessor(sqs));
     }
 
     public static final class MessageProcessed implements Serializable {

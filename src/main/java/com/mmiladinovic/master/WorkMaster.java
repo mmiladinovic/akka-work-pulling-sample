@@ -56,8 +56,8 @@ public class WorkMaster extends AbstractActor {
         this.workFeeder = workFeeder;
 
         tick = getContext().system().scheduler().schedule(
-                Duration.create(500, TimeUnit.MILLISECONDS),
-                Duration.create(1000, TimeUnit.MILLISECONDS),
+                Duration.create(100, TimeUnit.MILLISECONDS),
+                Duration.create(100, TimeUnit.MILLISECONDS),
                 self(), "tick", getContext().dispatcher(), null);
     }
 
@@ -85,6 +85,7 @@ public class WorkMaster extends AbstractActor {
         if (workers.containsKey(msg.worker)) {
             if (workQ.isEmpty()) {
                 askForMoreWork();
+                MetricsRegistry.meterAskForWorkInIdle().mark();
             }
             else if (!workers.get(msg.worker).isPresent()) {
                 AcceptedWork workItem = workQ.poll();
@@ -136,8 +137,9 @@ public class WorkMaster extends AbstractActor {
 
     private void tick(String s) {
         long delta = System.currentTimeMillis() - lastAskedWorkFeeder;
-        if (delta > 1000) {
+        if (delta > 200) {
             log.info("delta expired. asking for more work");
+            MetricsRegistry.meterProdForWork().mark();
             askForMoreWork();
         }
     }

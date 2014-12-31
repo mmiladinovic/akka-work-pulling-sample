@@ -52,18 +52,18 @@ public abstract class Worker extends AbstractActor {
 
     private void workToBeDone(WorkToBeDone msg) {
         // invoke handleWork
-        log.info("Received work to do {}", msg.work);
+        log.debug("Received work to do {}", msg.work);
         context().become(working);
         handleWork(msg.work, sender()); // TODO this not the other way round for sync work handlers?
     }
 
     private void workIsReady(WorkIsReady msg) {
-        log.info("requesting work");
+        log.debug("requesting work");
         master.tell(new WorkerRequestsWork(self()), self());
     }
 
     private void workComplete(WorkComplete msg) {
-        log.info("work is complete {}", msg.work);
+        log.debug("work is complete {}", msg.work);
         MetricsRegistry.meterWorkCompleted().mark();
 
         master.tell(new WorkIsDone(self()), self());

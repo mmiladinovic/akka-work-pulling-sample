@@ -40,7 +40,7 @@ public class WorkFeeder extends AbstractActor {
 
     private void messagesRead(MessagesRead messages) {
         messages.messages.stream().forEach(m -> {
-            MetricsRegistry.meterWorkGenerated().mark();
+            MetricsRegistry.meterWorkDequeued().mark();
             messages.requestor.tell(m, self());
         });
     }
