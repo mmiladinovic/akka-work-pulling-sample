@@ -54,6 +54,10 @@ public class MetricsRegistry {
         return registry.meter("work-ask-in-idle");
     }
 
+    public static Histogram histogramProcessingLatency() {
+        return registry.histogram("work-processing-latency");
+    }
+
     public static void registerGaugeMasterQueueDepth(final Queue queue) {
         registry.register(MetricRegistry.name("gauge-master-queue-depth"), (Gauge<Integer>) queue::size);
     }

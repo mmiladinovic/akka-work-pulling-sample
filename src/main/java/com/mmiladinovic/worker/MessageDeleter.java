@@ -5,6 +5,7 @@ import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import com.mmiladinovic.aws.SQS;
+import com.mmiladinovic.metrics.MetricsRegistry;
 
 import java.io.Serializable;
 
@@ -26,7 +27,8 @@ public class MessageDeleter extends UntypedActor {
         if (message instanceof SQSMessageWithOrigin) {
             SQSMessageWithOrigin sqsMessage = (SQSMessageWithOrigin) message;
             sqs.deleteMessage(sqsMessage.message);
-            log.info("deleted message {}", message);
+            log.debug("deleted message {}", message);
+            MetricsRegistry.histogramProcessingLatency().update(System.currentTimeMillis() - sqsMessage.message.receivedAt);
             sender().tell(new MessageDeleted(sqsMessage), self());
         }
         else {

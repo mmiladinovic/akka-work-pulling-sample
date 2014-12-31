@@ -4,6 +4,7 @@ import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import com.amazonaws.services.sqs.AmazonSQSClient;
 import com.amazonaws.services.sqs.model.DeleteMessageBatchRequestEntry;
 import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
+import com.amazonaws.services.sqs.model.ReceiveMessageResult;
 import com.amazonaws.services.sqs.model.SendMessageBatchRequestEntry;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
@@ -30,8 +31,11 @@ public class SQS {
         Preconditions.checkArgument(batchSize > 0 && batchSize <= 10);
         ReceiveMessageRequest r = new ReceiveMessageRequest(queueUrl);
         r.setMaxNumberOfMessages(batchSize);
-        return sqs.receiveMessage(r).getMessages().stream()
-                .map(s -> new SQSMessage(s.getMessageId(), s.getBody(), s.getReceiptHandle())).collect(Collectors.toList());
+        ReceiveMessageResult result = sqs.receiveMessage(r);
+        long now = System.currentTimeMillis();
+
+        return result.getMessages().stream()
+                .map(s -> new SQSMessage(s.getMessageId(), s.getBody(), s.getReceiptHandle(), now)).collect(Collectors.toList());
     }
 
     public Optional<SQSMessage> readMessage() {

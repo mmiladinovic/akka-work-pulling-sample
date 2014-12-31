@@ -10,11 +10,13 @@ public class SQSMessage implements Serializable {
     public final String id;
     public final String receiptHandle;
     public final String body;
+    public final long receivedAt;
 
-    public SQSMessage(String id, String body, String receiptHandle) {
+    public SQSMessage(String id, String body, String receiptHandle, long receivedAt) {
         this.id = id;
         this.body = body;
         this.receiptHandle = receiptHandle;
+        this.receivedAt = receivedAt;
     }
 
     @Override
