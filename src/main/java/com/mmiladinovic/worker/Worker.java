@@ -31,16 +31,12 @@ public abstract class Worker extends AbstractActor {
                 match(WorkToBeDone.class, m -> {
                     log.error("I shouldn't be asked to work whilst already working");
                 }).
-                match(NoWorkToBeDone.class, m -> {/* we asked for work but there's none. ignore */}).
-                matchAny(m -> {
-                    log.error("unhandled message whilst in working state: {}", m);
-                }).
+                matchAny(m -> { log.info("received handleAny msg {}", m); handleAny(m); }).
                 build();
 
         idle = ReceiveBuilder.
                 match(WorkToBeDone.class, this::workToBeDone).
                 match(WorkIsReady.class, this::workIsReady).
-                match(NoWorkToBeDone.class, m -> {/* we shouldn't really be getting this in idle state */}).
                 matchAny(m -> {
                     log.error("unhandled message whilst in idle state", m);
                 }).
@@ -56,18 +52,18 @@ public abstract class Worker extends AbstractActor {
 
     private void workToBeDone(WorkToBeDone msg) {
         // invoke handleWork
-        log.info("Received work to do {}", msg.work);
+        log.debug("Received work to do {}", msg.work);
         context().become(working);
         handleWork(msg.work, sender()); // TODO this not the other way round for sync work handlers?
     }
 
     private void workIsReady(WorkIsReady msg) {
-        log.info("requesting work");
+        log.debug("requesting work");
         master.tell(new WorkerRequestsWork(self()), self());
     }
 
     private void workComplete(WorkComplete msg) {
-        log.info("work is complete {}", msg.work);
+        log.debug("work is complete {}", msg.work);
         MetricsRegistry.meterWorkCompleted().mark();
 
         master.tell(new WorkIsDone(self()), self());
@@ -75,7 +71,8 @@ public abstract class Worker extends AbstractActor {
         context().become(idle);
     }
 
-    public abstract Object handleWork(Object work, ActorRef workRequestor);
+    public abstract void handleWork(Object work, ActorRef workRequestor);
+    public abstract void handleAny(Object work);
 
     // -- private messages
     public static class WorkComplete implements Serializable {
