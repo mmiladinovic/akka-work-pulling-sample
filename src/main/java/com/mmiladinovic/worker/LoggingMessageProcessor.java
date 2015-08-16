@@ -4,7 +4,6 @@ import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-import com.mmiladinovic.aws.SQS;
 
 import java.io.Serializable;
 
@@ -14,12 +13,6 @@ import java.io.Serializable;
 public class LoggingMessageProcessor extends UntypedActor {
 
     private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
-
-    private final SQS sqs;
-
-    public LoggingMessageProcessor(SQS sqs) {
-        this.sqs = sqs;
-    }
 
     @Override
     public void onReceive(Object message) throws Exception {
@@ -32,8 +25,8 @@ public class LoggingMessageProcessor extends UntypedActor {
         }
     }
 
-    public static Props props(SQS sqs) {
-        return Props.create(LoggingMessageProcessor.class, () -> new LoggingMessageProcessor(sqs));
+    public static Props props() {
+        return Props.create(LoggingMessageProcessor.class, () -> new LoggingMessageProcessor());
     }
 
     public static final class MessageProcessed implements Serializable {
