@@ -30,7 +30,8 @@ public class KConsumer {
     private final int consumerThreads;
 
     private final ConsumerConnector consumer;
-    private final ArrayBlockingQueue<AdImpression> queue = new ArrayBlockingQueue<>(200);
+    private final LinkedBlockingDeque<AdImpression> queue = new LinkedBlockingDeque<>(100000);
+
 
     private final ExecutorService e;
 
@@ -54,8 +55,8 @@ public class KConsumer {
         kafkaStreams = consumerMap.get(topic);
 
         threads = new ArrayList<>(consumerThreads);
-        for (int i = 0; i < consumerThreads; i++) {
-            threads.add(new ConsumerThread(kafkaStreams.get(i), queue));
+        for (KafkaStream s : kafkaStreams) {
+            threads.add(new ConsumerThread(s, queue));
         }
 
         MetricsRegistry.registerKafkaConsumerQueueDepth(queue);
@@ -65,7 +66,7 @@ public class KConsumer {
         for (ConsumerThread t : threads) {
             e.submit(t);
         }
-        log.info("Kafka consumer threads started");
+        log.info("Kafka consumer threads started: {}", consumerThreads);
     }
 
     public void stop() {
@@ -99,11 +100,15 @@ public class KConsumer {
         } catch (InterruptedException e1) {
             log.warn("interrupt while waiting for buffer to fill in");
         }
-        int count = queue.drainTo(retval, batchSize - 1);
-        MetricsRegistry.meterWorkDequeued().mark(count+1);
+        queue.drainTo(retval, batchSize - 1);
+
 
         return retval;
 
+    }
+
+    public void commitBatch() {
+        this.consumer.commitOffsets();
     }
 
     private static ConsumerConfig createConsumerConfig(String a_zookeeper, String a_groupId) {
@@ -124,11 +129,11 @@ public class KConsumer {
         private volatile boolean shutdown = false;
 
         private final ConsumerIterator<byte[], byte[]> kafkaStream;
-        private final Queue<AdImpression> queue;
+        private final BlockingQueue<AdImpression> queue;
 
         private final Gson gson = new Gson();
 
-        public ConsumerThread(KafkaStream<byte[], byte[]> kafkaStream, Queue<AdImpression> queue) {
+        public ConsumerThread(KafkaStream<byte[], byte[]> kafkaStream, BlockingQueue<AdImpression> queue) {
             this.kafkaStream = kafkaStream.iterator();
             this.queue = queue;
         }
@@ -147,7 +152,11 @@ public class KConsumer {
                 }
 
                 final AdImpression imp = gson.fromJson(new String(message), AdImpression.class);
-                queue.add(imp); // block if the buffer is full
+                try {
+                    queue.put(imp);
+                } catch (InterruptedException e1) {
+                    log.warn("interrupt while waiting for queue to gain capacity", e1);
+                }
             }
         }
 

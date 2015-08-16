@@ -13,17 +13,17 @@ public class MetricsRegistry {
     private static final MetricRegistry registry = new MetricRegistry();
 
     static {
-//        JmxReporter reporter = JmxReporter.forRegistry(registry).
-//                convertDurationsTo(TimeUnit.SECONDS).
-//                convertRatesTo(TimeUnit.SECONDS).build();
-//        reporter.start();
+        JmxReporter reporter = JmxReporter.forRegistry(registry).
+                convertDurationsTo(TimeUnit.SECONDS).
+                convertRatesTo(TimeUnit.SECONDS).build();
+        reporter.start();
 
-        final Slf4jReporter reporter = Slf4jReporter.forRegistry(registry)
-                .outputTo(LoggerFactory.getLogger("com.mmiladinovic.metrics"))
-                .convertRatesTo(TimeUnit.SECONDS)
-                .convertDurationsTo(TimeUnit.MILLISECONDS)
-                .build();
-        reporter.start(10, TimeUnit.SECONDS);
+//        final Slf4jReporter reporter = Slf4jReporter.forRegistry(registry)
+//                .outputTo(LoggerFactory.getLogger("com.mmiladinovic.metrics"))
+//                .convertRatesTo(TimeUnit.SECONDS)
+//                .convertDurationsTo(TimeUnit.MILLISECONDS)
+//                .build();
+//        reporter.start(10, TimeUnit.SECONDS);
 
     }
 
