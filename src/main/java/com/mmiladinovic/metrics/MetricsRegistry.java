@@ -34,6 +34,10 @@ public class MetricsRegistry {
         return registry.meter("work-dequeued");
     }
 
+    public static Timer timerKafkaRead() {
+        return registry.timer("timer-kafka-consumer");
+    }
+
     public static Meter meterWorkAccepted() {
         return registry.meter("work-accepted");
     }
@@ -61,6 +65,11 @@ public class MetricsRegistry {
     public static void registerGaugeMasterQueueDepth(final Queue queue) {
         registry.register(MetricRegistry.name("gauge-master-queue-depth"), (Gauge<Integer>) queue::size);
     }
+
+    public static void registerKafkaConsumerQueueDepth(final Queue queue) {
+        registry.register(MetricRegistry.name("kafka-consumer-queue-depth"), (Gauge<Integer>) queue::size);
+    }
+
 
     // -- TestDriver
 
