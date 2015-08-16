@@ -23,6 +23,8 @@ public class WorkMaster extends AbstractActor {
 
     private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
+    private static final int BATCH_SIZE = 1000;
+
     private final Map<ActorRef, Optional<AcceptedWork>> workers = new HashMap<>();
     private final Queue<AcceptedWork> workQ = new ArrayBlockingQueue<AcceptedWork>(10000);
 
@@ -132,7 +134,7 @@ public class WorkMaster extends AbstractActor {
 
     private void askForMoreWork() {
         lastAskedWorkFeeder = System.currentTimeMillis();
-        workFeeder.tell(new FeedMoreWork(10, self()), self());
+        workFeeder.tell(new FeedMoreWork(BATCH_SIZE, self()), self());
     }
 
     private void tick(String s) {

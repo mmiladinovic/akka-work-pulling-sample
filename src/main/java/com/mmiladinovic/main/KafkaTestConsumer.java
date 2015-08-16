@@ -24,7 +24,7 @@ public class KafkaTestConsumer {
 
 
         while (true) {
-            LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(50));
+            // LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(50));
             MetricsRegistry.meterWorkDequeued().mark(consumer.read(1000).size());
             consumer.commitBatch();
         }

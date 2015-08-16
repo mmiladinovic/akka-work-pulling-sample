@@ -24,7 +24,7 @@ public class KafkaTestProducer {
         final SenderTask t = new SenderTask(producer);
 
 
-        ExecutorService e = Executors.newFixedThreadPool(4);
+        ExecutorService e = Executors.newFixedThreadPool(1);
         e.submit(t);
 
         final Thread mainThread = Thread.currentThread();

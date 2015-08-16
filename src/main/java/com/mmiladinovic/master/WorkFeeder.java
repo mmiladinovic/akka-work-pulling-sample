@@ -6,14 +6,15 @@ import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.Patterns;
-import com.mmiladinovic.aws.SQS;
-import com.mmiladinovic.aws.SQSMessage;
+import com.mmiladinovic.kafka.KConsumer;
 import com.mmiladinovic.message.FeedMoreWork;
 import com.mmiladinovic.metrics.MetricsRegistry;
+import com.mmiladinovic.model.AdImpression;
 import scala.concurrent.Future;
 
 import java.io.Serializable;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by miroslavmiladinovic on 30/12/14.
@@ -21,9 +22,9 @@ import java.util.List;
 public class WorkFeeder extends AbstractActor {
     private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
-    private final SQS sqs;
+    private final KConsumer sqs;
 
-    public WorkFeeder(SQS sqs) {
+    public WorkFeeder(KConsumer sqs) {
         this.sqs = sqs;
 
         receive(ReceiveBuilder
@@ -34,7 +35,7 @@ public class WorkFeeder extends AbstractActor {
     }
 
     private void feedMoreWork(FeedMoreWork m) {
-        Future f = Futures.future(() -> new MessagesRead(sqs.readMessages(m.batchSize), m.requestor), context().dispatcher());
+        Future f = Futures.future(() -> new MessagesRead(sqs.read(m.batchSize, 200, TimeUnit.MILLISECONDS), m.requestor), context().dispatcher());
         Patterns.pipe(f, context().dispatcher()).to(self());
     }
 
@@ -45,15 +46,15 @@ public class WorkFeeder extends AbstractActor {
         });
     }
 
-    public static Props props(SQS sqs) {
+    public static Props props(KConsumer sqs) {
         return Props.create(WorkFeeder.class, () -> new WorkFeeder(sqs));
     }
 
     private static class MessagesRead implements Serializable {
-        public final List<SQSMessage> messages;
+        public final List<AdImpression> messages;
         public final ActorRef requestor;
 
-        public MessagesRead(List<SQSMessage> messages, ActorRef requestor) {
+        public MessagesRead(List<AdImpression> messages, ActorRef requestor) {
             this.messages = messages;
             this.requestor = requestor;
         }

@@ -30,7 +30,7 @@ public class KConsumer {
     private final int consumerThreads;
 
     private final ConsumerConnector consumer;
-    private final LinkedBlockingDeque<AdImpression> queue = new LinkedBlockingDeque<>(100000);
+    private final LinkedBlockingQueue<AdImpression> queue = new LinkedBlockingQueue<>(100000);
 
 
     private final ExecutorService e;
@@ -96,16 +96,33 @@ public class KConsumer {
 
         List<AdImpression> retval = new ArrayList<>(batchSize);
         try {
-            retval.add(queue.take()); // block
+            retval.add(queue.take()); // block to avoid busy wait
         } catch (InterruptedException e1) {
             log.warn("interrupt while waiting for buffer to fill in");
         }
         queue.drainTo(retval, batchSize - 1);
 
+        return retval;
+    }
+
+    public List<AdImpression> read(int batchSize, long timeout, TimeUnit unit) {
+        if (batchSize < 0 || MAX_BATCH_SIZE > 100000) throw new IllegalArgumentException("batch size out of bounds");
+
+        List<AdImpression> retval = new ArrayList<>(batchSize);
+        AdImpression imp = null;
+        try {
+            imp = queue.poll(timeout, unit);
+        } catch (InterruptedException e1) {
+            log.warn("interrupt while waiting for buffer to fill in");
+        }
+        if (imp != null) {
+            retval.add(imp);
+            queue.drainTo(retval, batchSize - 1);
+        }
 
         return retval;
-
     }
+
 
     public void commitBatch() {
         this.consumer.commitOffsets();

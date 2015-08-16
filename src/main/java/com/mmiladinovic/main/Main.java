@@ -2,11 +2,6 @@ package com.mmiladinovic.main;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
-import com.mmiladinovic.aws.SQS;
-import com.mmiladinovic.master.WorkFeeder;
-import com.mmiladinovic.master.WorkMaster;
-import com.mmiladinovic.worker.MessageProcessingCoordinator;
-
 /**
  * Created by miroslavmiladinovic on 29/11/2014.
  */

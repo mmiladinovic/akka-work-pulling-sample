@@ -5,7 +5,7 @@ import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-import com.mmiladinovic.aws.SQS;
+import com.mmiladinovic.kafka.KConsumer;
 import com.mmiladinovic.master.WorkFeeder;
 import com.mmiladinovic.master.WorkMaster;
 import com.mmiladinovic.worker.MessageProcessingCoordinator;
@@ -19,7 +19,7 @@ public class WorkPullingActors extends UntypedActor {
 
     private final String queueUrl;
     private final int workerCount;
-    private SQS sqs;
+    private KConsumer sqs;
 
     private ActorRef feeder;
     private ActorRef master;
@@ -31,13 +31,16 @@ public class WorkPullingActors extends UntypedActor {
 
     @Override
     public void preStart() throws Exception {
-        sqs = new SQS(queueUrl);
+        sqs = new KConsumer(queueUrl, "akka-test", "adimpressions", 1);
 
         feeder = context().actorOf(WorkFeeder.props(sqs), "work-feeder");
         master = context().actorOf(WorkMaster.props(feeder), "work-master");
         for (int i = 0; i < workerCount; i++) {
-            context().actorOf(MessageProcessingCoordinator.props(sqs, master), "worker-" + i);
+            context().actorOf(MessageProcessingCoordinator.props(master), "worker-" + i);
         }
+
+        sqs.start();
+
     }
 
     @Override
